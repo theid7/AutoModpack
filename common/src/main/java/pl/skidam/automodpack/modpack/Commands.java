@@ -2,7 +2,7 @@ package pl.skidam.automodpack.modpack;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.Formatting;
 import pl.skidam.automodpack.AutoModpack;
@@ -16,7 +16,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 public class Commands {
     public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(
+        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> dispatcher.register(
                 literal("automodpack")
                         .executes(Commands::about)
                         .then(literal("generate")
