@@ -213,9 +213,9 @@ public class ModpackUpdater {
         long start = System.currentTimeMillis();
 
         try {
-            int wholeQueue = serverModpackContent.list.size();
+            List<Config.ModpackContentFields.ModpackContentItems> copyModpackContentList = new ArrayList<>(serverModpackContent.list);
 
-            for (Config.ModpackContentFields.ModpackContentItems modpackContentField : serverModpackContent.list) {
+            for (Config.ModpackContentFields.ModpackContentItems modpackContentField : copyModpackContentList) {
 
                 String fileName = modpackContentField.file;
                 String serverChecksum = modpackContentField.hash;
@@ -226,15 +226,16 @@ public class ModpackUpdater {
 
                 if (serverChecksum.equals(CustomFileUtils.getHash(fileInRunDir, "SHA-256"))) {
                     LOGGER.info("Skipping already downloaded file: " + fileName);
-                    wholeQueue--;
+                    totalBytesDownloaded += fileInRunDir.length();
+                    copyModpackContentList.remove(modpackContentField);
                 }
             }
 
-            ModpackUpdater.wholeQueue = wholeQueue;
+            ModpackUpdater.wholeQueue = copyModpackContentList.size();
 
             LOGGER.info("In queue left " + wholeQueue + " files to download");
 
-            for (Config.ModpackContentFields.ModpackContentItems modpackContentField : serverModpackContent.list) {
+            for (Config.ModpackContentFields.ModpackContentItems modpackContentField : copyModpackContentList) {
                 while (downloadFutures.size() >= MAX_DOWNLOADS) { // Async Setting - max `some` download at the same time
                     downloadFutures = downloadFutures.stream()
                             .filter(future -> !future.isDone())
