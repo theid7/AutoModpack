@@ -33,12 +33,6 @@ public class RestartScreen extends Screen {
         this.addDrawableChild(restartButton);
         this.addDrawableChild(changelogsButton);
 
-        // Check if user using windows because restarter works only on windows for now
-//        String os = System.getProperty("os.name").toLowerCase();
-//        if (!JavaPath.checkJavaPath(new File(JavaPath.getJavaPath())) || !os.contains("windows")) {
-//            restartButton.active = false;
-//        }
-
         if (ModpackUpdater.changelogList.isEmpty()) {
             changelogsButton.active = false;
         }
@@ -56,7 +50,7 @@ public class RestartScreen extends Screen {
             this.client.setScreen(null);
         });
         restartButton = new ButtonWidget(this.width / 2, this.height / 6 + 120, 150, 20, TextHelper.translatable("gui.automodpack.screen.restart.button.quit").formatted(Formatting.GREEN), (button) -> {
-            ReLauncher.run(gameDir);
+            new ReLauncher.Restart(gameDir);
         });
         changelogsButton = new ButtonWidget(this.width / 2 - 75, this.height / 6 + 145, 150, 20, TextHelper.translatable("gui.automodpack.screen.restart.button.changelogs").formatted(Formatting.DARK_AQUA), (button) -> {
             this.client.setScreen(new ChangelogScreen(this, gameDir));

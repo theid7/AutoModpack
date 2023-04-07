@@ -10,8 +10,13 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import pl.skidam.automodpack.AutoModpack;
+import pl.skidam.automodpack.Preload;
+import pl.skidam.automodpack.forge.networking.ModPackets;
+import pl.skidam.automodpack.forge.networking.packet.LoginS2CPacket;
 
-@Mod(AutoModpack.MOD_ID)
+import static pl.skidam.automodpack.StaticVariables.*;
+
+@Mod(MOD_ID)
 public class AutoModpackForge {
 
     public AutoModpackForge() {
@@ -21,8 +26,8 @@ public class AutoModpackForge {
     }
 
     private void setup(final FMLCommonSetupEvent event) {
-//        ModPackets.register();
-        AutoModpack.onPreInitialize();
+        ModPackets.register();
+        Preload.onPreInitialize();
         AutoModpack.onInitialize();
     }
 
@@ -30,7 +35,7 @@ public class AutoModpackForge {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         ServerPlayerEntity player = (ServerPlayerEntity) event.getEntity();
-//        ModPackets.sendToClient(new LoginS2CPacket(AutoModpack.VERSION), player);
+        ModPackets.sendToClient(new LoginS2CPacket(VERSION), player);
     }
 
 
