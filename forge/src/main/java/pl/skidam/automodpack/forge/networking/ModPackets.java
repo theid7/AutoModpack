@@ -35,19 +35,19 @@ public class ModPackets {
         net.messageBuilder(LoginS2CPacket.class, id(), NetworkDirection.PLAY_TO_CLIENT)
                 .decoder(LoginS2CPacket::new)
                 .encoder(LoginS2CPacket::write)
-                .consumerMainThread(LoginS2CPacket::apply)
+//                .consumerMainThread(LoginS2CPacket::apply)
                 .add();
 
         net.messageBuilder(LoginC2SPacket.class, id(), NetworkDirection.PLAY_TO_SERVER)
                 .decoder(LoginC2SPacket::new)
                 .encoder(LoginC2SPacket::write)
-                .consumerMainThread(LoginC2SPacket::apply)
+//                .consumerMainThread(LoginC2SPacket::apply)
                 .add();
 
         net.messageBuilder(LinkS2CPacket.class, id(), NetworkDirection.PLAY_TO_CLIENT)
                 .decoder(LinkS2CPacket::new)
                 .encoder(LinkS2CPacket::write)
-                .consumerMainThread(LinkS2CPacket::apply)
+//                .consumerMainThread(LinkS2CPacket::apply)
                 .add();
     }
 
