@@ -5,12 +5,11 @@ import net.minecraft.client.sound.AbstractSoundInstance;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.math.random.Random;
 
 public class CustomSoundInstance extends AbstractSoundInstance {
 
     CustomSoundInstance(SoundEvent event) {
-        super(event.getId(), SoundCategory.MASTER, Random.create());
+        super(event.getId(), SoundCategory.MASTER);
         this.attenuationType = SoundInstance.AttenuationType.NONE;
     }
 
