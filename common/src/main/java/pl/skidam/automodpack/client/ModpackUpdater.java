@@ -1,10 +1,13 @@
 package pl.skidam.automodpack.client;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import pl.skidam.automodpack.Download;
 import pl.skidam.automodpack.ReLauncher;
 import pl.skidam.automodpack.client.audio.AudioManager;
 import pl.skidam.automodpack.config.ConfigTools;
 import pl.skidam.automodpack.config.Jsons;
+import pl.skidam.automodpack.modPlatforms.CurseForgeAPI;
+import pl.skidam.automodpack.modPlatforms.ModrinthAPI;
 import pl.skidam.automodpack.utils.*;
 
 import java.io.File;
@@ -16,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,14 +32,18 @@ import static pl.skidam.automodpack.utils.RefactorStrings.getETA;
 public class ModpackUpdater {
     public static List<DownloadInfo> downloadInfos = new ArrayList<>();
     public static final int MAX_DOWNLOADS = 5; // at the same time
+    public static final int MAX_FETCHES = 20; // at the same time
     public static List<CompletableFuture<Void>> downloadFutures = new ArrayList<>();
+    public static List<CompletableFuture<Void>> fetchFutures = new ArrayList<>();
     public static Map<String, Boolean> changelogList = new HashMap<>(); // <file, true - downloaded, false - deleted>
     private static ExecutorService DOWNLOAD_EXECUTOR;
-    public static boolean update;
+    private static ExecutorService FETCH_EXECUTOR;
+    public static int totalFetchedFiles = 0;
     public static long totalBytesDownloaded = 0;
     public static long totalBytesToDownload = 0;
     private static int alreadyDownloaded = 0;
     private static int wholeQueue = 0;
+    public static boolean update;
     private static Jsons.ModpackContentFields serverModpackContent;
     public static Map<String, String> failedDownloads = new HashMap<>(); // <file, url>
 
@@ -75,6 +83,10 @@ public class ModpackUpdater {
         double totalETA = (totalBytesToDownload - totalBytesDownloaded) / totalBytesPerSecond;
 
         return getETA(totalETA);
+    }
+
+    public static String getModpackName() {
+        return serverModpackContent.modpackName;
     }
 
     public ModpackUpdater(Jsons.ModpackContentFields serverModpackContent, String link, File modpackDir) {
@@ -127,7 +139,7 @@ public class ModpackUpdater {
                 if (!ModpackUtils.isUpdate(serverModpackContent, modpackDir)) {
                     // check if modpack is loaded now loaded
 
-                    LOGGER.warn("Modpack is up to date");
+                    LOGGER.info("Modpack is up to date");
 
                     List<File> filesBefore = mapAllFiles(modpackDir, new ArrayList<>());
 
@@ -176,11 +188,12 @@ public class ModpackUpdater {
         long start = System.currentTimeMillis();
 
         try {
+            byte[] serverModpackContentByteArray = GSON.toJson(serverModpackContent).getBytes();
             List<Jsons.ModpackContentFields.ModpackContentItems> copyModpackContentList = new ArrayList<>(serverModpackContent.list);
 
             for (Jsons.ModpackContentFields.ModpackContentItems modpackContentField : serverModpackContent.list) {
                 String fileName = modpackContentField.file;
-                String serverChecksum = modpackContentField.hash;
+                String serverSHA1 = modpackContentField.sha1;
 
                 File file = new File(modpackDir + File.separator + fileName);
 
@@ -192,7 +205,7 @@ public class ModpackUpdater {
                     continue;
                 }
 
-                if (serverChecksum.equals(CustomFileUtils.getHashWithRetry(file, "SHA-256"))) {
+                if (serverSHA1.equals(CustomFileUtils.getHashWithRetry(file, "SHA-1"))) {
                     LOGGER.info("Skipping already downloaded file: " + fileName);
                     copyModpackContentList.remove(modpackContentField);
                 } else if (modpackContentField.isEditable) {
@@ -206,10 +219,35 @@ public class ModpackUpdater {
                 }
             }
 
-            for (Jsons.ModpackContentFields.ModpackContentItems modpackContentField : copyModpackContentList) {
-                if (!modpackContentField.size.matches("^[0-9]*$")) continue;
-                totalBytesToDownload += Long.parseLong(modpackContentField.size);
+            long startTime = System.currentTimeMillis();
+
+            ThreadFactory threadFactoryFetches = new ThreadFactoryBuilder()
+                    .setNameFormat("AutoModpackFetch-%d")
+                    .build();
+
+            FETCH_EXECUTOR = Executors.newFixedThreadPool(
+                    MAX_FETCHES,
+                    threadFactoryFetches
+            );
+
+            totalFetchedFiles = 0;
+
+            for (Jsons.ModpackContentFields.ModpackContentItems copyModpackContentField : copyModpackContentList) {
+                while (fetchFutures.size() >= MAX_FETCHES) { // Async Setting - max `some` fetches at the same time
+                    fetchFutures = fetchFutures.stream()
+                            .filter(future -> !future.isDone())
+                            .collect(Collectors.toList());
+                }
+
+                totalBytesToDownload += Long.parseLong(copyModpackContentField.size);
+
+                fetchFutures.add(fetchAsync(copyModpackContentField));
             }
+
+            CompletableFuture.allOf(fetchFutures.toArray(new CompletableFuture[0])).get();
+
+            LOGGER.info("Fetches took {}ms", System.currentTimeMillis() - startTime);
+
 
             wholeQueue = copyModpackContentList.size();
 
@@ -217,7 +255,14 @@ public class ModpackUpdater {
 
             if (wholeQueue > 0) {
 
-                DOWNLOAD_EXECUTOR = Executors.newFixedThreadPool(MAX_DOWNLOADS);
+                ThreadFactory threadFactoryDownloads = new ThreadFactoryBuilder()
+                        .setNameFormat("AutoModpackDownload-%d")
+                        .build();
+
+                DOWNLOAD_EXECUTOR = Executors.newFixedThreadPool(
+                        MAX_DOWNLOADS,
+                        threadFactoryDownloads
+                );
 
                 for (Jsons.ModpackContentFields.ModpackContentItems modpackContentField : copyModpackContentList) {
                     while (downloadFutures.size() >= MAX_DOWNLOADS) { // Async Setting - max `some` download at the same time
@@ -227,7 +272,7 @@ public class ModpackUpdater {
                     }
 
                     String fileName = modpackContentField.file;
-                    String serverChecksum = modpackContentField.hash;
+                    String serverSHA1 = modpackContentField.sha1;
 
                     File downloadFile = new File(modpackDir + File.separator + fileName);
                     String url;
@@ -238,14 +283,14 @@ public class ModpackUpdater {
                         url = modpackContentField.link; // This link just must work, so we don't need to encode it
                     }
 
-                    downloadFutures.add(processAsync(url, downloadFile, serverChecksum));
+                    downloadFutures.add(downloadAsync(url, downloadFile, serverSHA1));
                 }
 
                 CompletableFuture.allOf(downloadFutures.toArray(new CompletableFuture[0])).get();
             }
 
             // Downloads completed
-            Files.write(modpackContentFile.toPath(), GSON.toJson(serverModpackContent).getBytes());
+            Files.write(modpackContentFile.toPath(), serverModpackContentByteArray);
             finishModpackUpdate(modpackDir, modpackContentFile);
 
             if (AudioManager.isMusicPlaying()) {
@@ -331,7 +376,7 @@ public class ModpackUpdater {
 
                     File fileInRunningDir = new File("." + file.toFile().toString().replace(modpackDir.toString(), ""));
 //                    LOGGER.warn("File in running dir: " + fileInRunningDir + " exists: " + fileInRunningDir.exists() + " hash same? " + CustomFileUtils.compareFileHashes(file.toFile(), fileInRunningDir, "SHA-256"));
-                    if (fileInRunningDir.exists() && CustomFileUtils.compareFileHashes(file.toFile(), fileInRunningDir, "SHA-256")) {
+                    if (fileInRunningDir.exists() && CustomFileUtils.compareFileHashes(file.toFile(), fileInRunningDir, "SHA-1")) {
                         LOGGER.info("Deleting {} and {}", file.toFile(), fileInRunningDir);
                         CustomFileUtils.forceDelete(fileInRunningDir, true);
                     } else {
@@ -352,44 +397,27 @@ public class ModpackUpdater {
         // So copy files to modpack dir
         ModpackUtils.copyModpackFilesFromRunDirToModpackDir(modpackDir, modpackContent, editableFiles);
 
+
+        ModpackUtils.copyModpackFilesFromModpackDirToRunDir(modpackDir, modpackContent, editableFiles);
+
         checkAndRemoveDuplicateMods(modpackDir + File.separator + "mods");
     }
 
-    private static CompletableFuture<Void> processAsync(String url, File downloadFile, String serverChecksum) {
-        return CompletableFuture.runAsync(() -> process(url, downloadFile, serverChecksum), DOWNLOAD_EXECUTOR);
+
+    private static CompletableFuture<Void> downloadAsync(String url, File downloadFile, String serverSHA1) {
+        return CompletableFuture.runAsync(() -> downloadFile(url, downloadFile, serverSHA1), DOWNLOAD_EXECUTOR);
     }
 
-    // TODO remove this method when we finally manage to fix weird issue with different checksums
-    private static void process(String url, File downloadFile, String serverChecksum) {
-        if (!downloadFile.exists()) {
-            downloadFile(url, downloadFile, serverChecksum);
-            return;
-        }
-
-        try {
-            String localChecksum = CustomFileUtils.getHashWithRetry(downloadFile, "SHA-256");
-
-            if (serverChecksum.equals(localChecksum)) { // up-to-date
-                LOGGER.info("File " + downloadFile.getName() + " is up-to-date!"); // strange...
-                return;
-            }
-
-            LOGGER.warn(downloadFile.getName() + " Local checksum: " + localChecksum + " Server checksum: " + serverChecksum);
-            downloadFile(url, downloadFile, serverChecksum);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void downloadFile(String url, File downloadFile, String serverChecksum) {
+    private static void downloadFile(String url, File downloadFile, String serverSHA1) {
         if (!update || !ScreenTools.getScreenString().contains("downloadscreen")) {
             ScreenTools.setTo.download();
         }
+
         update = true;
         DownloadInfo downloadInfo = new DownloadInfo(downloadFile.getName());
         downloadInfos.add(downloadInfo);
 
-        int maxAttempts = 5;
+        int maxAttempts = 3;
         int attempts = 0;
         boolean success = false;
         long startTime = System.currentTimeMillis();
@@ -401,37 +429,24 @@ public class ModpackUpdater {
 
             try {
                 Download downloadInstance = new Download();
-                CompletableFuture.runAsync(() -> {
-                    while (!downloadInstance.isDownloading()) {
-                        new Wait(1);
-                    }
+                downloadInstance.download(url, downloadFile, downloadInfo);
 
-                    long oldValue = 0;
-
-                    while (downloadInstance.isDownloading()) {
-                        oldValue = updateDownloadInfo(downloadInstance, downloadInfo, oldValue);
-                        new Wait(25);
-                    }
-                });
-
-                downloadInstance.download(url, downloadFile);
-
-                String ourChecksum = CustomFileUtils.getHashWithRetry(downloadFile, "SHA-256");
+                String localSHA1 = CustomFileUtils.getHashWithRetry(downloadFile, "SHA-1");
 
                 long size = downloadInstance.getFileSize();
 
-                if (serverChecksum.equals(ourChecksum)) {
+                if (serverSHA1.equals(localSHA1)) {
                     success = true;
                 } else if (attempts == maxAttempts && !downloadFile.toString().endsWith(".jar") && downloadFile.length() == size) {
-                    // FIXME: it shouldn't even return wrong checksum if the size is correct...
-                    LOGGER.warn("Checksums of {} do not match, but size is correct so we will assume it is correct lol", downloadFile.getName());
+                    // FIXME: it shouldn't even return wrong hashes if the size is correct...
+                    LOGGER.warn("Hashes of {} do not match, but size is correct so we will assume it is correct lol", downloadFile.getName());
                     success = true;
                 } else {
                     if (attempts != maxAttempts) {
-                        LOGGER.warn("Checksums do not match, retrying... client: {} server: {}", ourChecksum, serverChecksum);
+                        LOGGER.warn("Hashes do not match, retrying... client: {} server: {}", localSHA1, serverSHA1);
                     }
                     CustomFileUtils.forceDelete(downloadFile, false);
-                    totalBytesDownloaded -= size;
+                    totalBytesDownloaded -= downloadInstance.getTotalBytesRead();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -444,22 +459,58 @@ public class ModpackUpdater {
             changelogList.put(downloadFile.getName(), true);
             alreadyDownloaded++;
         } else {
+
+            // Download from our server if we can't download from mod platforms
+            String serverUrl = serverModpackContent.list.stream().filter(modpackContentField -> modpackContentField.sha1.equals(serverSHA1)).findFirst().get().link;
+            if (!url.equals(serverUrl)) {
+                downloadFile(serverUrl, downloadFile, serverSHA1);
+                return;
+            }
+
             failedDownloads.put(downloadFile.getName(), url);
             LOGGER.error("Failed to download {} after {} attempts", downloadFile.getName(), attempts);
         }
     }
 
-    private static long updateDownloadInfo(Download downloadInstance, DownloadInfo downloadInfo, long oldValue) {
-        downloadInfo.setBytesDownloaded(downloadInstance.getTotalBytesRead());
-        downloadInfo.setDownloadSpeed(downloadInstance.getBytesPerSecond() / 1024 / 1024);
-        downloadInfo.setDownloading(downloadInstance.isDownloading());
-        downloadInfo.setEta(downloadInstance.getETA());
-        downloadInfo.setFileSize(downloadInstance.getFileSize());
-        downloadInfo.setBytesPerSecond(downloadInstance.getBytesPerSecond());
+    private static CompletableFuture<Void> fetchAsync(Jsons.ModpackContentFields.ModpackContentItems copyModpackContentField) {
+        return CompletableFuture.runAsync(() -> fetchModPlatforms(copyModpackContentField), FETCH_EXECUTOR);
+    }
 
-        totalBytesDownloaded += downloadInstance.getTotalBytesRead() - oldValue;
-        oldValue = downloadInstance.getTotalBytesRead();
-        return oldValue;
+    private static void fetchModPlatforms(Jsons.ModpackContentFields.ModpackContentItems copyModpackContentField) {
+        String fileType = copyModpackContentField.type;
+
+        // Check if file is mod, shaderpack or resourcepack is available to download from modrinth or curseforge
+        if (fileType.equals("mod") || fileType.equals("shaderpack") || fileType.equals("resourcepack")) {
+            String serverSHA1 = copyModpackContentField.sha1;
+            String serverMurmur = copyModpackContentField.murmur;
+
+            if (!ScreenTools.getScreenString().contains("fetchscreen")) {
+                ScreenTools.setTo.fetch();
+            }
+
+            String modPlatformUrl = tryModPlatforms(serverSHA1, serverMurmur);
+            if (modPlatformUrl != null && !modPlatformUrl.isEmpty()) {
+                copyModpackContentField.link = modPlatformUrl;
+                totalFetchedFiles++;
+            }
+        }
+    }
+
+    private static String tryModPlatforms(String sha512, String murmur) {
+
+        ModrinthAPI modrinthFileInfo = ModrinthAPI.getModInfoFromSHA512(sha512);
+        if (modrinthFileInfo != null) {
+            LOGGER.info("Found {} on Modrinth downloading from there", modrinthFileInfo.fileName);
+            return modrinthFileInfo.downloadUrl;
+        }
+
+        CurseForgeAPI curseforgeFileInfo = CurseForgeAPI.getModInfoFromMurmur(murmur);
+        if (curseforgeFileInfo != null) {
+            LOGGER.info("Found {} on CurseForge downloading from there", curseforgeFileInfo.fileName);
+            return curseforgeFileInfo.downloadUrl;
+        }
+
+        return null;
     }
 
 
@@ -473,6 +524,7 @@ public class ModpackUpdater {
             downloadFutures.clear();
             downloadInfos.clear();
             DOWNLOAD_EXECUTOR = null;
+            totalFetchedFiles = 0;
             totalBytesDownloaded = 0;
             alreadyDownloaded = 0;
             failedDownloads.clear();
@@ -500,7 +552,7 @@ public class ModpackUpdater {
         return null;
     }
 
-    // removes mods from main mods folder that are having the same id as the ones in the modpack mods folder but different version/checksum
+    // removes mods from main mods folder that are having the same id as the ones in the modpack mods folder but different version/hash
     private static void checkAndRemoveDuplicateMods(String modpackModsFile) {
         Map<String, String> mainMods = getMods("./mods/");
         Map<String, String> modpackMods = getMods(modpackModsFile);

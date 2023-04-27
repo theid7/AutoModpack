@@ -11,8 +11,8 @@ import org.quiltmc.loader.api.minecraft.MinecraftQuiltLoader;
 import pl.skidam.automodpack.Download;
 import pl.skidam.automodpack.Platform;
 import pl.skidam.automodpack.ReLauncher;
+import pl.skidam.automodpack.modPlatforms.ModrinthAPI;
 import pl.skidam.automodpack.utils.CustomFileUtils;
-import pl.skidam.automodpack.utils.ModrinthAPI;
 
 import java.io.*;
 import java.nio.file.FileSystem;
@@ -62,23 +62,22 @@ public class PlatformImpl {
                 }
             }
 
-            ModrinthAPI qfapi = new ModrinthAPI("qvIfYCYJ");
+            ModrinthAPI qfapi = ModrinthAPI.getModInfoFromID("qvIfYCYJ");
 
             if (qfapi == null) return;
 
-            LOGGER.info("Installing latest Quilted Fabric API (QFAPI)! " + qfapi.modrinthAPIversion);
-            LOGGER.info("Download URL: " + qfapi.modrinthAPIdownloadUrl);
+            LOGGER.info("Installing latest Quilted Fabric API (QFAPI)! " + qfapi.fileVersion);
+            LOGGER.info("Download URL: " + qfapi.downloadUrl);
             try {
+                File file = new File(modsPath.toFile() + File.separator + qfapi.fileName);
+
                 Download downloadInstance = new Download();
+                downloadInstance.download(qfapi.downloadUrl, file); // Download it
 
-                File file = new File(modsPath.toFile() + File.separator + qfapi.modrinthAPIfileName);
+                String localHash = CustomFileUtils.getHashWithRetry(file, "SHA-1");
 
-                downloadInstance.download(qfapi.modrinthAPIdownloadUrl, file); // Download it
-
-                String localChecksum = CustomFileUtils.getHashWithRetry(file, "SHA-512");
-
-                if (!localChecksum.equals(qfapi.modrinthAPISHA512Hash)) {
-                    LOGGER.error("Checksums are not the same! Downloaded file is corrupted!");
+                if (!localHash.equals(qfapi.SHA1Hash)) {
+                    LOGGER.error("Hashes are not the same! Downloaded file is corrupted!");
                     return;
                 }
             } catch (Exception e) {

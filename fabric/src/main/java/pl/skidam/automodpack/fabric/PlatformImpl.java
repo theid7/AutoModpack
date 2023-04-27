@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import pl.skidam.automodpack.Download;
 import pl.skidam.automodpack.Platform;
 import pl.skidam.automodpack.ReLauncher;
+import pl.skidam.automodpack.modPlatforms.ModrinthAPI;
 import pl.skidam.automodpack.utils.CustomFileUtils;
-import pl.skidam.automodpack.utils.ModrinthAPI;
 
 import java.io.*;
 import java.nio.file.FileSystem;
@@ -62,24 +62,23 @@ public class PlatformImpl {
                 }
             }
 
-            ModrinthAPI fapi = new ModrinthAPI("P7dR8mSH");
+            ModrinthAPI fapi = ModrinthAPI.getModInfoFromID("P7dR8mSH");
 
             if (fapi == null) return;
 
-            LOGGER.info("Installing latest Fabric API (FAPI)! " + fapi.modrinthAPIversion);
-            LOGGER.info("Download URL: " + fapi.modrinthAPIdownloadUrl);
+            LOGGER.info("Installing latest Fabric API (FAPI)! " + fapi.fileVersion);
+            LOGGER.info("Download URL: " + fapi.downloadUrl);
             try {
+                File file = new File(modsPath.toFile() + File.separator + fapi.fileName);
+
                 Download downloadInstance = new Download();
+                downloadInstance.download(fapi.downloadUrl, file);
 
-                File file = new File(modsPath.toFile() + File.separator + fapi.modrinthAPIfileName);
-
-                downloadInstance.download(fapi.modrinthAPIdownloadUrl, file);
-
-                String localChecksum = CustomFileUtils.getHashWithRetry(file, "SHA-512");
+                String localHash = CustomFileUtils.getHashWithRetry(file, "SHA-1");
 
 
-                if (!localChecksum.equals(fapi.modrinthAPISHA512Hash)) {
-                    LOGGER.error("Checksums are not the same! Downloaded file is corrupted!");
+                if (!localHash.equals(fapi.SHA1Hash)) {
+                    LOGGER.error("Hashes are not the same! Downloaded file is corrupted!");
                     return;
                 }
             } catch (Exception e) {
