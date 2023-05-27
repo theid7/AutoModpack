@@ -104,7 +104,7 @@ public class Modpack {
                         if (fileToSync.isDirectory) {
                             addAllContent(fileToSync, list);
                         } else {
-                            addContent(fileToSync.getParent(), fileToSync, list)
+                            addContent(fileToSync.getParent(), fileToSync, list);
                         }
                     }
                 }
