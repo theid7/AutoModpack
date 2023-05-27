@@ -100,7 +100,12 @@ public class Modpack {
                     for (String file : serverConfig.syncedFiles) {
                         LOGGER.info("Syncing {}... ", file);
                         File fileToSync = new File("." + file);
-                        addAllContent(fileToSync, list);
+
+                        if (fileToSync.isDirectory) {
+                            addAllContent(fileToSync, list);
+                        } else {
+                            addContent(fileToSync.getParent(), fileToSync, list)
+                        }
                     }
                 }
 
