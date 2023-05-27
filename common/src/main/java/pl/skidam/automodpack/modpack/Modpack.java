@@ -101,10 +101,10 @@ public class Modpack {
                         LOGGER.info("Syncing {}... ", file);
                         File fileToSync = new File("." + file);
 
-                        if (fileToSync.isDirectory) {
+                        if (fileToSync.isDirectory()) {
                             addAllContent(fileToSync, list);
                         } else {
-                            addContent(fileToSync.getParent(), fileToSync, list);
+                            addContent(fileToSync.getParentFile(), fileToSync, list);
                         }
                     }
                 }
