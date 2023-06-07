@@ -1,17 +1,19 @@
 package pl.skidam.automodpack.client.ui;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.EntryListWidget;
+import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import pl.skidam.automodpack.TextHelper;
 import pl.skidam.automodpack.client.ModpackUpdater;
 import pl.skidam.automodpack.client.audio.AudioManager;
 import pl.skidam.automodpack.client.ui.widget.ScrollingListWidget;
-import pl.skidam.automodpack.config.Jsons;
 import pl.skidam.automodpack.config.ConfigTools;
+import pl.skidam.automodpack.config.Jsons;
 import pl.skidam.automodpack.utils.ModpackContentTools;
 
 import java.io.File;
@@ -40,9 +42,6 @@ public class ChangelogScreen extends Screen {
     protected void init() {
         super.init();
         assert this.client != null;
-
-        this.client.keyboard.setRepeatEvents(true);
-
         // Retrieve the changelogs
         changelogs = getChangelogs();
 
@@ -62,7 +61,11 @@ public class ChangelogScreen extends Screen {
 
     private void addBackButton(boolean removeBefore) {
         // Add the back button
-        var backButton = new ButtonWidget(10, this.height - 30, 72, 20, TextHelper.translatable("gui.automodpack.screen.changelog.button.back"), button -> this.client.setScreen(this.parent));
+        var backButton = ButtonWidget.builder(TextHelper.translatable("automodpack.back"), button -> {
+            assert this.client != null;
+            this.client.setScreen(this.parent);
+        }).position(10, this.height - 30).size(72, 20).build();
+
         if (removeBefore) {
             this.remove(backButton);
         }
@@ -107,7 +110,7 @@ public class ChangelogScreen extends Screen {
 
         String summary = "Mods + " + modsAdded + " | - " + modsRemoved;
 
-        drawCenteredText(matrices, textRenderer, TextHelper.literal(summary), this.width / 2, 5, 16777215);
+        drawCenteredTextWithShadow(matrices, textRenderer, TextHelper.literal(summary), this.width / 2, 5, 16777215);
     }
 
     private void updateChangelogs() {
@@ -130,6 +133,7 @@ public class ChangelogScreen extends Screen {
         this.remove(this.changelogsList);
         this.changelogsList = new ChangelogsList(client, this.width, this.height, 48, this.height - 64, 20);
         this.addDrawableChild(this.changelogsList);
+        this.addDrawableChild(this.searchField);
 
         addBackButton(true); // it makes it invisible because of re-added changelog list
     }
@@ -173,11 +177,7 @@ public class ChangelogScreen extends Screen {
             }
         }
 
-        public void addChangelog(String changelog, int color) {
-            this.children().add(new Entry(changelog, color));
-        }
-
-        public class Entry extends EntryListWidget.Entry<ChangelogsList.Entry> {
+        public class Entry extends ElementListWidget.Entry<ChangelogsList.Entry> {
             private final String text;
             private final int color;
             public Entry(String text, int color) {
@@ -187,7 +187,17 @@ public class ChangelogScreen extends Screen {
 
             @Override
             public void render(MatrixStack matrices, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                drawStringWithShadow(matrices, ChangelogsList.this.client.textRenderer, text, x + 10, y, color);
+                drawTextWithShadow(matrices, ChangelogsList.this.client.textRenderer, text, x + 10, y, color);
+            }
+
+            @Override
+            public List<? extends Selectable> selectableChildren() {
+                return null;
+            }
+
+            @Override
+            public List<? extends Element> children() {
+                return null;
             }
         }
     }

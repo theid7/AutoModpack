@@ -126,6 +126,10 @@ public class ModpackUtils {
 
     public static Jsons.ModpackContentFields getServerModpackContent(String link) {
         try {
+            if (link == null) {
+                return null;
+            }
+
             HttpRequest getContent = HttpRequest.newBuilder()
                     .timeout(Duration.ofSeconds(3))
                     .setHeader("Content-Type", "application/json")
