@@ -52,17 +52,17 @@ public class RestartScreen extends Screen {
 
     public void initWidgets() {
         assert this.client != null;
-        cancelButton = ButtonWidget.builder(TextHelper.translatable("automodpack.restart.cancel").formatted(Formatting.RED), button -> {
+        cancelButton = new ButtonWidget(this.width / 2 - 155, this.height / 2 + 50, 150, 20, TextHelper.translatable("automodpack.restart.cancel").formatted(Formatting.RED), button -> {
             this.client.setScreen(null);
-        }).position(this.width / 2 - 155, this.height / 2 + 50).size(150, 20).build();
+        });
 
-        restartButton = ButtonWidget.builder(TextHelper.translatable("automodpack.restart.confirm").formatted(Formatting.GREEN), button -> {
+        restartButton = new ButtonWidget(this.width / 2 + 5, this.height / 2 + 50, 150, 20, TextHelper.translatable("automodpack.restart.confirm").formatted(Formatting.GREEN), button -> {
             new ReLauncher.Restart(gameDir, fullDownload);
-        }).position(this.width / 2 + 5, this.height / 2 + 50).size(150, 20).build();
+        });
 
-        changelogsButton = ButtonWidget.builder(TextHelper.translatable("automodpack.changelog.view").formatted(Formatting.DARK_AQUA), button -> {
+        changelogsButton = new ButtonWidget(this.width / 2 - 75, this.height / 2 + 75, 150, 20, TextHelper.translatable("automodpack.changelog.view").formatted(Formatting.DARK_AQUA), button -> {
             this.client.setScreen(new ChangelogScreen(this, gameDir));
-        }).position(this.width / 2 - 75, this.height / 2 + 75).size(150, 20).build();
+        });
     }
 
     @Override

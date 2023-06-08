@@ -21,7 +21,7 @@ public class LinkS2CPacket {
         if (buf.readBoolean()) { // disconnect
             LOGGER.warn("{} has not installed modpack", profile.getName());
             Text reason = TextHelper.literal("[AutoModpack] Install/Update modpack to join");
-            ClientConnection connection = ((ServerLoginNetworkHandlerAccessor) handler).getConnection();
+            ClientConnection connection = handler.getConnection();
             connection.send(new LoginDisconnectS2CPacket(reason));
             connection.disconnect(reason);
         } else {
