@@ -61,25 +61,25 @@ public class MenuScreen extends Screen {
         int button4X = centerX + 3 * (buttonWidth + spacing);
 
 
-        this.backButton = ButtonWidget.builder(TextHelper.translatable("automodpack.back"), button -> {
+        this.backButton = new ButtonWidget(button1X, this.height - 35, buttonWidth, 20, TextHelper.translatable("automodpack.back"), button -> {
             assert this.client != null;
             this.client.setScreen(null);
-        }).position(button1X, this.height - 35).size(buttonWidth, 20).build();
+        });
 
-        this.selectButton = ButtonWidget.builder(TextHelper.translatable("automodpack.select"), button -> {
+        this.selectButton = new ButtonWidget(button2X, this.height - 35, buttonWidth, 20, TextHelper.translatable("automodpack.select"), button -> {
             StaticVariables.LOGGER.info("Select modpack {} from {}", getModpack().getName(), getModpackPath());
             selectModpack(getModpackPath(), getModpack());
-        }).position(button2X, this.height - 35).size(buttonWidth, 20).build();
+        });
 
-        this.redownloadButton = ButtonWidget.builder(TextHelper.translatable("automodpack.redownload"), button -> {
+        this.redownloadButton = new ButtonWidget(button3X, this.height - 35, buttonWidth, 20, TextHelper.translatable("automodpack.redownload"), button -> {
             StaticVariables.LOGGER.info("Redownload {} from {}", getModpack().getName(), getModpack().getLink());
             reDownloadModpack(getModpackPath(), getModpack());
-        }).position(button3X, this.height - 35).size(buttonWidth, 20).build();
+        });
 
-        this.removeButton = ButtonWidget.builder(TextHelper.translatable("automodpack.delete"), button -> {
+        this.removeButton = new ButtonWidget(button4X, this.height - 35, buttonWidth, 20, TextHelper.translatable("automodpack.delete"), button -> {
             StaticVariables.LOGGER.info("Remove modpack {} from {}", getModpack().getName(), getModpackPath());
             removeModpack(getModpackPath());
-        }).position(button4X, this.height - 35).size(buttonWidth, 20).build();
+        });
 
     }
 

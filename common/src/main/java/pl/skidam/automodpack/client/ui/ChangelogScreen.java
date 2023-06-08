@@ -61,10 +61,7 @@ public class ChangelogScreen extends Screen {
 
     private void addBackButton(boolean removeBefore) {
         // Add the back button
-        var backButton = ButtonWidget.builder(TextHelper.translatable("automodpack.back"), button -> {
-            assert this.client != null;
-            this.client.setScreen(this.parent);
-        }).position(10, this.height - 30).size(72, 20).build();
+        var backButton = new ButtonWidget(10, this.height - 30, 72, 20, TextHelper.translatable("gui.automodpack.screen.changelog.button.back"), button -> this.client.setScreen(this.parent));
 
         if (removeBefore) {
             this.remove(backButton);
