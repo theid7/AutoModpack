@@ -24,9 +24,9 @@ public class FetchScreen extends Screen {
         this.renderBackground(matrices);
 
         // Fetching direct url's from Modrinth and CurseForge.
-        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.fetch").formatted(Formatting.BOLD), this.width / 2, this.height / 2 - 60, 16777215);
-        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.wait"), this.width / 2, this.height / 2 - 48, 16777215);
-        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.fetch.found", totalFetchedFiles), this.width / 2, this.height / 2 - 30, 16777215);
+        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.fetch").formatted(Formatting.BOLD).asOrderedText(), this.width / 2, this.height / 2 - 60, 16777215);
+        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.wait").asOrderedText(), this.width / 2, this.height / 2 - 48, 16777215);
+        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.fetch.found", totalFetchedFiles).asOrderedText(), this.width / 2, this.height / 2 - 30, 16777215);
 
         super.render(matrices, mouseX, mouseY, delta);
     }

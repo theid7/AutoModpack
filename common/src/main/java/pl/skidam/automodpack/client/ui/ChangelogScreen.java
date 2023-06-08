@@ -110,7 +110,7 @@ public class ChangelogScreen extends Screen {
 
         String summary = "Mods + " + modsAdded + " | - " + modsRemoved;
 
-        drawCenteredTextWithShadow(matrices, textRenderer, TextHelper.literal(summary), this.width / 2, 5, 16777215);
+        drawCenteredTextWithShadow(matrices, textRenderer, TextHelper.literal(summary).asOrderedText(), this.width / 2, 5, 16777215);
     }
 
     private void updateChangelogs() {
@@ -187,7 +187,7 @@ public class ChangelogScreen extends Screen {
 
             @Override
             public void render(MatrixStack matrices, int index, int y, int x, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean hovered, float tickDelta) {
-                drawTextWithShadow(matrices, ChangelogsList.this.client.textRenderer, text, x + 10, y, color);
+                drawTextWithShadow(matrices, ChangelogsList.this.client.textRenderer, TextHelper.literal(text), x + 10, y, color);
             }
 
             @Override
