@@ -52,9 +52,9 @@ public class DangerScreen extends Screen {
     @Override
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         this.renderBackground(matrices);
-        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title, this.width / 2, this.height / 2 - 60, 16777215);
-        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.danger.description"), this.width / 2, this.height / 2 - 35, 16777215);
-        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.danger.secDescription"), this.width / 2, this.height / 2 - 25, 16777215);
+        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title.asOrderedText(), this.width / 2, this.height / 2 - 60, 16777215);
+        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.danger.description").asOrderedText(), this.width / 2, this.height / 2 - 35, 16777215);
+        drawCenteredTextWithShadow(matrices, this.textRenderer, TextHelper.translatable("automodpack.danger.secDescription").asOrderedText(), this.width / 2, this.height / 2 - 25, 16777215);
         super.render(matrices, mouseX, mouseY, delta);
     }
 

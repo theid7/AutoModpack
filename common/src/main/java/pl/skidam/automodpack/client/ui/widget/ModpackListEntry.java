@@ -5,6 +5,7 @@ import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 import pl.skidam.automodpack.modpack.Modpack;
@@ -48,7 +49,7 @@ public class ModpackListEntry extends AlwaysSelectedEntryListWidget.Entry<Modpac
             centeredX = (int) (x + entryWidth / (2 * scale));
         }
 
-        DrawableHelper.drawCenteredTextWithShadow(matrices, client.textRenderer, text, centeredX, y, 16777215);
+        DrawableHelper.drawCenteredTextWithShadow(matrices, client.textRenderer, text.asOrderedText(), centeredX, y, 16777215);
 
         matrices.pop();
     }
