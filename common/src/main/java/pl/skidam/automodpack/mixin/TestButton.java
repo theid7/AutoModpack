@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import pl.skidam.automodpack.Platform;
+import pl.skidam.automodpack.TextHelper;
 import pl.skidam.automodpack.client.ScreenTools;
 
 @Mixin(TitleScreen.class)
@@ -40,7 +41,7 @@ public class TestButton extends Screen {
                         256,
                         256,
                         button -> ScreenTools.setTo.menu(),
-                        Text.translatable("gui.automodpack.menu")
+                        TextHelper.translatable("gui.automodpack.menu")
                 )
         );
 
