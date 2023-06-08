@@ -28,7 +28,7 @@ public class LoginS2CPacket {
 
     // Login packet (the best way)
     public static void receive(MinecraftServer server, ServerLoginNetworkHandler handler, boolean understood, PacketByteBuf buf, ServerLoginNetworking.LoginSynchronizer sync, PacketSender sender) {
-        ClientConnection connection = handler.connection;
+        ClientConnection connection = ((ServerLoginNetworkHandlerAccessor) handler).getConnection();
 
         GameProfile profile = ((ServerLoginNetworkHandlerAccessor) handler).getGameProfile();
         UUID uniqueId = profile.getId();
