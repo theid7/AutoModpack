@@ -137,7 +137,7 @@ And so analogically to add shaderpacks, put them in `/automodpack/host-modpack/s
 - Having trouble with the local host IP? No worries, just repeat the process but change "hostLocalIp" instead.
 
 ## Questions? Problems?
-* Feel free to contact me via discord Skidam#0001
+* Feel free to contact me via discord @skidam
 
 **Contributors are welcome!**
 [**click.**](CONTRIBUTING.md)
