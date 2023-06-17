@@ -101,7 +101,7 @@ public class LoginS2CPacket {
             LOGGER.info("Sending external modpack host link: " + linkToSend);
         } else {
             // If the player is connecting locally or their IP matches a specified IP, use the local host IP and port
-            if (playerIp.startsWith("/127.0.0.1") || playerIp.startsWith("/[0:0:0:0:") || playerIp.startsWith("/" + serverConfig.hostLocalIp)) { // local
+            if (playerIp.startsWith("/127.0.0.1") || playerIp.startsWith("/[0:0:0:0:") || playerIp.startsWith("/" + serverConfig.hostLocalIp) || playerIp.startsWith("/192.168.")) { // local
                 linkToSend = "http://" + serverConfig.hostLocalIp + ":" + serverConfig.hostPort;
             } else if (!HostNetwork.equals("") && playerIp.startsWith("/" + HostNetwork)) { // local
                 linkToSend = "http://" + serverConfig.hostLocalIp + ":" + serverConfig.hostPort;
